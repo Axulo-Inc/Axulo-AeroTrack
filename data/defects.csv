@@ -1,0 +1,6 @@
+aircraft_id,ATA_chapter,defect_description,downtime_hours,repair_cost,date
+AC001,32,Hydraulic leak,6,15000,2026-01-12
+AC001,24,Electrical bus fault,3,8000,2026-01-28
+AC002,27,Flap actuator issue,8,22000,2026-02-02
+AC003,36,Pneumatic pressure loss,5,12000,2026-02-10
+AC003,32,Landing gear sensor fault,4,9000,2026-02-18

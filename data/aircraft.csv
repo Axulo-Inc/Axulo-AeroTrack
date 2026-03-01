@@ -1,0 +1,4 @@
+aircraft_id,aircraft_type,flight_hours,cycles,location
+AC001,Cessna 208,1250,980,Johannesburg
+AC002,King Air 350,890,650,Cape Town
+AC003,PC-12,1520,1200,Durban

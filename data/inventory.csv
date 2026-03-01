@@ -1,0 +1,5 @@
+part_id,part_name,current_stock,min_required,unit_cost
+P001,Hydraulic Pump,4,2,12000
+P002,Flap Actuator,2,1,18000
+P003,Pressure Valve,6,3,9000
+P004,Landing Gear Sensor,1,2,7000
