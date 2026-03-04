@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plane, Mail, Lock, User, Phone, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Plane, Mail, Lock, User, Phone } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { Button, Input, Card, useToast } from '../../components/ui'
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -11,12 +12,11 @@ function Register() {
     password: '',
     confirmPassword: ''
   })
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errors, setErrors] = useState({})
   const [agreeTerms, setAgreeTerms] = useState(false)
   
-  const { register, loading, error } = useAuth()
+  const { register, loading } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
 
   const validateForm = () => {
@@ -68,7 +68,10 @@ function Register() {
     
     const result = await register(formData)
     if (result.success) {
+      toast.success('Registration successful! Welcome to Axulo AeroTrack.')
       navigate('/')
+    } else {
+      toast.error(result.error || 'Registration failed')
     }
   }
 
@@ -87,144 +90,61 @@ function Register() {
         </div>
 
         {/* Register Form */}
-        <div className="bg-slate-800 rounded-xl p-8 shadow-xl">
+        <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Error Alert */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
-                <p className="text-red-500 text-sm">{error}</p>
-              </div>
-            )}
+            <Input
+              label="Full Name"
+              name="name"
+              icon={User}
+              value={formData.name}
+              onChange={handleChange}
+              error={errors.name}
+              placeholder="John Doe"
+            />
 
-            {/* Name Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className={`w-full bg-slate-900 text-white pl-10 pr-4 py-3 rounded-lg border ${
-                    errors.name ? 'border-red-500' : 'border-slate-700'
-                  } focus:outline-none focus:border-blue-500 transition`}
-                  placeholder="John Doe"
-                />
-              </div>
-              {errors.name && (
-                <p className="text-red-500 text-xs mt-1">{errors.name}</p>
-              )}
-            </div>
+            <Input
+              label="Email Address"
+              type="email"
+              name="email"
+              icon={Mail}
+              value={formData.email}
+              onChange={handleChange}
+              error={errors.email}
+              placeholder="john@axulo.aero"
+            />
 
-            {/* Email Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`w-full bg-slate-900 text-white pl-10 pr-4 py-3 rounded-lg border ${
-                    errors.email ? 'border-red-500' : 'border-slate-700'
-                  } focus:outline-none focus:border-blue-500 transition`}
-                  placeholder="john@axulo.aero"
-                />
-              </div>
-              {errors.email && (
-                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-              )}
-            </div>
+            <Input
+              label="Phone Number"
+              type="tel"
+              name="phone"
+              icon={Phone}
+              value={formData.phone}
+              onChange={handleChange}
+              error={errors.phone}
+              placeholder="+27 123 456 789"
+            />
 
-            {/* Phone Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Phone Number
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className={`w-full bg-slate-900 text-white pl-10 pr-4 py-3 rounded-lg border ${
-                    errors.phone ? 'border-red-500' : 'border-slate-700'
-                  } focus:outline-none focus:border-blue-500 transition`}
-                  placeholder="+27 123 456 789"
-                />
-              </div>
-              {errors.phone && (
-                <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
-              )}
-            </div>
+            <Input
+              label="Password"
+              type="password"
+              name="password"
+              icon={Lock}
+              value={formData.password}
+              onChange={handleChange}
+              error={errors.password}
+              placeholder="••••••••"
+            />
 
-            {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`w-full bg-slate-900 text-white pl-10 pr-12 py-3 rounded-lg border ${
-                    errors.password ? 'border-red-500' : 'border-slate-700'
-                  } focus:outline-none focus:border-blue-500 transition`}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
-              )}
-            </div>
-
-            {/* Confirm Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={`w-full bg-slate-900 text-white pl-10 pr-12 py-3 rounded-lg border ${
-                    errors.confirmPassword ? 'border-red-500' : 'border-slate-700'
-                  } focus:outline-none focus:border-blue-500 transition`}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
-              )}
-            </div>
+            <Input
+              label="Confirm Password"
+              type="password"
+              name="confirmPassword"
+              icon={Lock}
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              error={errors.confirmPassword}
+              placeholder="••••••••"
+            />
 
             {/* Terms Agreement */}
             <div>
@@ -251,31 +171,26 @@ function Register() {
               )}
             </div>
 
-            {/* Submit Button */}
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="primary"
+              fullWidth
+              isLoading={loading}
             >
-              {loading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Creating account...</span>
-                </div>
-              ) : (
-                'Create Account'
-              )}
-            </button>
+              Create Account
+            </Button>
           </form>
 
           {/* Sign In Link */}
-          <p className="text-center text-gray-400 text-sm mt-6">
-            Already have an account?{' '}
-            <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium transition">
-              Sign in
-            </Link>
-          </p>
-        </div>
+          <div className="text-center mt-6">
+            <p className="text-gray-400 text-sm">
+              Already have an account?{' '}
+              <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium transition">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </Card>
       </div>
     </div>
   )

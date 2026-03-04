@@ -3,13 +3,19 @@ import { useNavigate } from 'react-router-dom'
 
 const AuthContext = createContext()
 
-// Mock user data (replace with real API later)
-const MOCK_USER = {
-  id: 1,
-  name: 'John Doe',
-  email: 'john@axulo.aero',
-  role: 'Admin',
-  avatar: null
+// Key for localStorage
+const USERS_STORAGE_KEY = 'axulo_users'
+const SESSION_KEY = 'axulo_session'
+
+// Helper to get users from localStorage
+const getStoredUsers = () => {
+  const stored = localStorage.getItem(USERS_STORAGE_KEY)
+  return stored ? JSON.parse(stored) : []
+}
+
+// Helper to save users to localStorage
+const saveUsers = (users) => {
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
 }
 
 export const AuthProvider = ({ children }) => {
@@ -18,12 +24,29 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null)
   const navigate = useNavigate()
 
+  // Initialize with demo user if no users exist
+  useEffect(() => {
+    const users = getStoredUsers()
+    if (users.length === 0) {
+      const demoUser = {
+        id: 1,
+        name: 'Thabang Motsoahae',
+        email: 'thabang@axulo.aero',
+        phone: '+27 123 456 789',
+        password: 'password',
+        role: 'Admin',
+        createdAt: new Date().toISOString()
+      }
+      saveUsers([demoUser])
+    }
+  }, [])
+
   // Check for existing session on mount
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      // In a real app, verify token with backend
-      setUser(MOCK_USER)
+    const session = localStorage.getItem(SESSION_KEY)
+    if (session) {
+      const userData = JSON.parse(session)
+      setUser(userData)
     }
     setLoading(false)
   }, [])
@@ -33,12 +56,19 @@ export const AuthProvider = ({ children }) => {
     setLoading(true)
     
     try {
-      // Mock login - replace with actual API call
-      if (email === 'john@axulo.aero' && password === 'password') {
-        const token = 'mock-jwt-token'
-        localStorage.setItem('token', token)
-        setUser(MOCK_USER)
-        navigate('/')
+      // Get users from storage
+      const users = getStoredUsers()
+      
+      // Find user with matching email and password
+      const foundUser = users.find(
+        u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+      )
+      
+      if (foundUser) {
+        // Don't store password in session
+        const { password: _, ...userWithoutPassword } = foundUser
+        localStorage.setItem(SESSION_KEY, JSON.stringify(userWithoutPassword))
+        setUser(userWithoutPassword)
         return { success: true }
       } else {
         throw new Error('Invalid email or password')
@@ -56,11 +86,38 @@ export const AuthProvider = ({ children }) => {
     setLoading(true)
     
     try {
-      // Mock registration - replace with actual API call
-      const token = 'mock-jwt-token'
-      localStorage.setItem('token', token)
-      setUser({ ...MOCK_USER, ...userData })
-      navigate('/')
+      // Get existing users
+      const users = getStoredUsers()
+      
+      // Check if email already exists
+      const existingUser = users.find(
+        u => u.email.toLowerCase() === userData.email.toLowerCase()
+      )
+      
+      if (existingUser) {
+        throw new Error('Email already registered')
+      }
+      
+      // Create new user with unique ID
+      const newUser = {
+        id: users.length + 1,
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        password: userData.password,
+        role: 'User',
+        createdAt: new Date().toISOString()
+      }
+      
+      // Save to storage
+      const updatedUsers = [...users, newUser]
+      saveUsers(updatedUsers)
+      
+      // Auto login after registration
+      const { password: _, ...userWithoutPassword } = newUser
+      localStorage.setItem(SESSION_KEY, JSON.stringify(userWithoutPassword))
+      setUser(userWithoutPassword)
+      
       return { success: true }
     } catch (err) {
       setError(err.message)
@@ -71,7 +128,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = () => {
-    localStorage.removeItem('token')
+    localStorage.removeItem(SESSION_KEY)
     setUser(null)
     navigate('/login')
   }

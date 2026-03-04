@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plane, Mail, ArrowLeft, AlertCircle } from 'lucide-react'
+import { Plane, Mail, ArrowLeft, CheckCircle } from 'lucide-react'
+import { Button, Input, Card, useToast } from '../../components/ui'
 
 function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const toast = useToast()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -17,17 +19,24 @@ function ForgotPassword() {
     setTimeout(() => {
       if (email) {
         setSubmitted(true)
+        toast.success('Password reset instructions sent to your email')
       } else {
         setError('Please enter your email address')
+        toast.error('Please enter your email address')
       }
       setLoading(false)
     }, 1000)
   }
 
+  const handleReset = () => {
+    setSubmitted(false)
+    setEmail('')
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        {/* Logo Section */}
+        {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="bg-blue-600 p-4 rounded-2xl">
@@ -35,82 +44,70 @@ function ForgotPassword() {
             </div>
           </div>
           <h2 className="text-3xl font-bold text-white">Reset Password</h2>
-          <p className="text-gray-400 mt-2">Enter your email to receive reset instructions</p>
+          <p className="text-gray-400 mt-2">
+            {submitted 
+              ? 'Check your email for instructions' 
+              : 'Enter your email to receive reset instructions'}
+          </p>
         </div>
 
-        <div className="bg-slate-800 rounded-xl p-8 shadow-xl">
+        <Card>
           {!submitted ? (
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Error Alert */}
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 flex items-start gap-3">
-                  <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
-                  <p className="text-red-500 text-sm">{error}</p>
-                </div>
-              )}
+              <Input
+                label="Email Address"
+                type="email"
+                icon={Mail}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={error}
+                placeholder="john@axulo.aero"
+                required
+              />
 
-              {/* Email Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-900 text-white pl-10 pr-4 py-3 rounded-lg border border-slate-700 focus:outline-none focus:border-blue-500 transition"
-                    placeholder="john@axulo.aero"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
+              <Button
                 type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="primary"
+                fullWidth
+                isLoading={loading}
               >
-                {loading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Sending...</span>
-                  </div>
-                ) : (
-                  'Send Reset Link'
-                )}
-              </button>
+                Send Reset Link
+              </Button>
             </form>
           ) : (
-            // Success Message - Using JavaScript comment instead of JSX comment
+            // Success Message
             <div className="text-center py-6">
-              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="text-green-500" size={32} />
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
+                  <CheckCircle className="text-green-500" size={32} />
+                </div>
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">Check Your Email</h3>
               <p className="text-gray-400 mb-6">
                 We've sent password reset instructions to <br />
                 <span className="text-blue-400 font-medium">{email}</span>
               </p>
-              <button
-                onClick={() => setSubmitted(false)}
-                className="text-blue-400 hover:text-blue-300 text-sm"
+              <Button
+                variant="ghost"
+                onClick={handleReset}
+                fullWidth
               >
                 Try a different email
-              </button>
+              </Button>
             </div>
           )}
 
           {/* Back to Login Link */}
           <div className="text-center mt-6 pt-4 border-t border-slate-700">
-            <Link to="/login" className="text-blue-400 hover:text-blue-300 flex items-center justify-center gap-2">
+            <Link 
+              to="/login" 
+              className="text-blue-400 hover:text-blue-300 flex items-center justify-center gap-2 transition"
+            >
               <ArrowLeft size={16} />
               Back to Login
             </Link>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   )

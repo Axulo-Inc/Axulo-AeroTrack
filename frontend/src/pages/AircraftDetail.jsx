@@ -1,13 +1,14 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import { useDefects } from "../contexts/DefectsContext.jsx"
-import { AiOutlineClose } from "react-icons/ai"
+import { Button, Badge, Card, Modal, useToast, Input, Select } from "../components/ui"
+import { ArrowLeft, Plus } from 'lucide-react'
 
 function AircraftDetail() {
-  // ✅ Get id FIRST from useParams
   const { id } = useParams()
   const navigate = useNavigate()
   const { defects, addDefect } = useDefects()
+  const toast = useToast()
   
   const [showModal, setShowModal] = useState(false)
   const [newDefect, setNewDefect] = useState({
@@ -16,7 +17,6 @@ function AircraftDetail() {
     status: "Open",
   })
 
-  // Now we can use id safely
   const aircraftDefects = defects.filter((d) => d.aircraftId === parseInt(id))
 
   const healthScore = aircraftDefects.some(
@@ -28,51 +28,61 @@ function AircraftDetail() {
     : "Good"
 
   const handleAddDefect = () => {
-    if (!newDefect.description.trim()) return
+    if (!newDefect.description.trim()) {
+      toast.error('Please enter a defect description')
+      return
+    }
     addDefect({ aircraftId: parseInt(id), ...newDefect })
     setNewDefect({ description: "", severity: "Low", status: "Open" })
     setShowModal(false)
+    toast.success('Defect added successfully')
   }
+
+  const severityOptions = [
+    { value: "Low", label: "Low" },
+    { value: "Medium", label: "Medium" },
+    { value: "High", label: "High" },
+  ]
+
+  const statusOptions = [
+    { value: "Open", label: "Open" },
+    { value: "Closed", label: "Closed" },
+  ]
 
   return (
     <div className="p-6 text-white bg-slate-800 min-h-screen">
-      {/* Back button - FIXED to go to /fleet */}
-      <button
+      {/* Back button */}
+      <Button
+        variant="ghost"
         onClick={() => navigate("/fleet")}
-        className="mb-6 text-blue-400 hover:underline flex items-center gap-1"
+        icon={ArrowLeft}
+        className="mb-6"
       >
-        ← Back to Fleet
-      </button>
+        Back to Fleet
+      </Button>
 
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Aircraft {id} Details</h1>
-        <button
+        <Button
+          variant="primary"
           onClick={() => setShowModal(true)}
-          className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 transition"
+          icon={Plus}
         >
-          + Add Defect
-        </button>
+          Add Defect
+        </Button>
       </div>
 
       {/* Health Status Card */}
-      <div className="bg-slate-900 p-6 rounded-xl mb-8">
-        <p className="text-gray-400 mb-2">Health Status</p>
-        <p
-          className={`text-2xl font-bold ${
-            healthScore === "Good"
-              ? "text-green-400"
-              : healthScore === "Critical"
-              ? "text-red-400"
-              : "text-yellow-400"
-          }`}
-        >
-          {healthScore}
-        </p>
-      </div>
+      <Card className="mb-8">
+        <Card.Body>
+          <p className="text-gray-400 mb-2">Health Status</p>
+          <Badge.Status status={healthScore} />
+        </Card.Body>
+      </Card>
 
       {/* Defects Table */}
       <h2 className="text-2xl font-bold mb-4">Defect Log</h2>
-      <div className="bg-slate-900 rounded-xl overflow-hidden">
+      <Card padding="none" className="overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-slate-800 text-gray-400">
             <tr>
@@ -85,23 +95,11 @@ function AircraftDetail() {
             {aircraftDefects.map((defect) => (
               <tr key={defect.id} className="border-t border-slate-800">
                 <td className="p-4">{defect.description}</td>
-                <td
-                  className={`p-4 font-semibold ${
-                    defect.severity === "High"
-                      ? "text-red-400"
-                      : defect.severity === "Medium"
-                      ? "text-yellow-400"
-                      : "text-green-400"
-                  }`}
-                >
-                  {defect.severity}
+                <td className="p-4">
+                  <Badge.Status status={defect.severity} />
                 </td>
-                <td
-                  className={`p-4 ${
-                    defect.status === "Open" ? "text-red-400" : "text-green-400"
-                  }`}
-                >
-                  {defect.status}
+                <td className="p-4">
+                  <Badge.Status status={defect.status} />
                 </td>
               </tr>
             ))}
@@ -114,65 +112,54 @@ function AircraftDetail() {
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       {/* Add Defect Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
-          <div className="bg-slate-900 p-6 rounded-xl w-96 relative">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
-            >
-              <AiOutlineClose size={24} />
-            </button>
-
-            <h3 className="text-xl font-bold mb-6">Add New Defect</h3>
-
-            <div className="flex flex-col gap-4">
-              <input
-                type="text"
-                placeholder="Description"
-                value={newDefect.description}
-                onChange={(e) =>
-                  setNewDefect({ ...newDefect, description: e.target.value })
-                }
-                className="p-3 rounded bg-slate-800 text-white border border-slate-700 focus:outline-none focus:border-blue-500"
-              />
-
-              <select
-                value={newDefect.severity}
-                onChange={(e) =>
-                  setNewDefect({ ...newDefect, severity: e.target.value })
-                }
-                className="p-3 rounded bg-slate-800 text-white border border-slate-700"
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-
-              <select
-                value={newDefect.status}
-                onChange={(e) =>
-                  setNewDefect({ ...newDefect, status: e.target.value })
-                }
-                className="p-3 rounded bg-slate-800 text-white border border-slate-700"
-              >
-                <option value="Open">Open</option>
-                <option value="Closed">Closed</option>
-              </select>
-
-              <button
-                onClick={handleAddDefect}
-                className="bg-green-600 px-4 py-3 rounded hover:bg-green-700 transition mt-2"
-              >
-                Add Defect
-              </button>
-            </div>
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Add New Defect"
+        size="md"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleAddDefect}>
+              Add Defect
+            </Button>
           </div>
+        }
+      >
+        <div className="space-y-4">
+          <Input
+            label="Description"
+            placeholder="Enter defect description"
+            value={newDefect.description}
+            onChange={(e) =>
+              setNewDefect({ ...newDefect, description: e.target.value })
+            }
+          />
+
+          <Select
+            label="Severity"
+            options={severityOptions}
+            value={newDefect.severity}
+            onChange={(e) =>
+              setNewDefect({ ...newDefect, severity: e.target.value })
+            }
+          />
+
+          <Select
+            label="Status"
+            options={statusOptions}
+            value={newDefect.status}
+            onChange={(e) =>
+              setNewDefect({ ...newDefect, status: e.target.value })
+            }
+          />
         </div>
-      )}
+      </Modal>
     </div>
   )
 }

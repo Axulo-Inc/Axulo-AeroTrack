@@ -1,12 +1,34 @@
 import StatCard from "../components/StatCard"
+import { Button, useToast } from "../components/ui"
 import DefectTrendChart from "../components/Charts/DefectTrendChart"
 import MTBFChart from "../components/Charts/MTBFChart"
 import FleetHealthGauge from "../components/Charts/FleetHealthGauge"
 
 function Dashboard() {
+  const toast = useToast()
+
   return (
     <div className="bg-slate-800 p-6">
-      <h1 className="text-3xl font-bold mb-8 text-white">Fleet Overview</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-white">Fleet Overview</h1>
+        
+        {/* Toast Test Buttons */}
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            onClick={() => toast.success('Operation completed successfully!')}
+          >
+            Test Success
+          </Button>
+          <Button 
+            variant="danger" 
+            size="sm" 
+            onClick={() => toast.error('Something went wrong!')}
+          >
+            Test Error
+          </Button>
+        </div>
+      </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

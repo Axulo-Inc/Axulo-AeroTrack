@@ -163,7 +163,7 @@ function Login() {
         {/* Demo Credentials */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500">
-            Demo: john@axulo.aero / password
+            Demo:<span className="text-blue-400">thabang@axulo.aero</span> / password
           </p>
         </div>
       </div>
