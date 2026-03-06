@@ -9,6 +9,7 @@ import {
   ChevronDown
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import ThemeSwitcher from '../ui/ThemeSwitcher'
 
 function TopNavbar() {
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -55,6 +56,9 @@ function TopNavbar() {
 
         {/* Right side - Icons & User */}
         <div className="flex items-center gap-4">
+          {/* Theme Switcher - Now properly placed */}
+          <ThemeSwitcher variant="icon" />
+          
           {/* Notifications */}
           <div className="relative">
             <button

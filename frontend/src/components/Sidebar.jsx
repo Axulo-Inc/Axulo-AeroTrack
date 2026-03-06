@@ -6,11 +6,14 @@ import {
   Package, 
   BarChart3,
   Settings,
-  HelpCircle
+  HelpCircle,
+  User
 } from 'lucide-react'
+import { useTheme } from "../contexts/ThemeContext"
 
 function Sidebar() {
   const location = useLocation()
+  const { colors, isDark } = useTheme()
   
   const isActive = (path) => location.pathname === path
 
@@ -20,17 +23,18 @@ function Sidebar() {
     { path: "/maintenance", icon: Wrench, label: "Maintenance" },
     { path: "/inventory", icon: Package, label: "Inventory" },
     { path: "/analytics", icon: BarChart3, label: "Analytics" },
+    { path: "/profile", icon: User, label: "Profile" },
   ]
 
   return (
-    <div className="w-64 bg-slate-900 p-6 min-h-screen flex flex-col">
+    <div className={`w-64 ${colors.bg.secondary} p-6 min-h-screen flex flex-col ${isDark ? 'dark' : 'light'}`}>
       {/* Logo */}
       <div className="mb-10">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <h2 className={`text-xl font-bold ${colors.text.primary} flex items-center gap-2`}>
           <Plane className="text-blue-400" size={24} />
           <span>Axulo<span className="text-blue-400">Aero</span></span>
         </h2>
-        <p className="text-xs text-gray-500 mt-1">Aviation Intelligence</p>
+        <p className={`text-xs ${colors.text.muted} mt-1`}>Aviation Intelligence</p>
       </div>
 
       {/* Navigation */}
@@ -42,7 +46,7 @@ function Sidebar() {
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
               isActive(item.path)
                 ? "bg-blue-600 text-white"
-                : "text-gray-400 hover:text-white hover:bg-slate-800"
+                : `${colors.text.tertiary} ${colors.bg.hover}`
             }`}
           >
             <item.icon size={20} />
@@ -57,17 +61,17 @@ function Sidebar() {
       </nav>
 
       {/* Footer links */}
-      <div className="pt-6 border-t border-slate-800 space-y-1">
+      <div className={`pt-6 border-t ${colors.border.primary} space-y-1`}>
         <Link
           to="/settings"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 transition"
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg ${colors.text.tertiary} ${colors.bg.hover} transition`}
         >
           <Settings size={20} />
           <span className="font-medium">Settings</span>
         </Link>
         <Link
           to="/help"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 transition"
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg ${colors.text.tertiary} ${colors.bg.hover} transition`}
         >
           <HelpCircle size={20} />
           <span className="font-medium">Help</span>

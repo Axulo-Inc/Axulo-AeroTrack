@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom"
 import { AuthProvider } from "./contexts/AuthContext"
 import { ToastProvider } from "./components/ui/Toast"
+import { ThemeProvider } from "./contexts/ThemeContext"
 import ProtectedRoute from "./components/Auth/ProtectedRoute"
 import MainLayout from "./components/Layout/MainLayout"
 import Login from "./pages/auth/Login"
@@ -12,9 +13,11 @@ import AircraftDetail from "./pages/AircraftDetail.jsx"
 import Maintenance from "./pages/Maintenance.jsx"
 import Inventory from "./pages/Inventory.jsx"
 import Analytics from "./pages/Analytics.jsx"
+import Profile from "./pages/Profile.jsx"
 
 function App() {
   return (
+  <ThemeProvider> 
     <AuthProvider>
       <ToastProvider>
         <Routes>
@@ -66,9 +69,17 @@ function App() {
               </MainLayout>
             </ProtectedRoute>
           } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Profile />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
         </Routes>
       </ToastProvider>
     </AuthProvider>
+  </ThemeProvider>
   )
 }
 
