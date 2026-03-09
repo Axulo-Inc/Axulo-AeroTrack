@@ -144,6 +144,9 @@ function Fleet() {
           loading={false}
           emptyMessage="No aircraft found matching your search"
           className="mb-6"
+          storageKey="fleet_columns"
+          defaultVisibleColumns={['registration', 'type', 'status', 'hours']}
+          defaultColumnOrder={['registration', 'type', 'status', 'hours', 'cycles', 'lastMaintenance']}
         />
       )}
 
