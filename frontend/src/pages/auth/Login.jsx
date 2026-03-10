@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plane, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Plane, Mail, Lock } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { Button, Input, Card, useToast } from '../../components/ui'
 
 function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
+  const [email, setEmail] = useState('thabang@axulo.aero')
+  const [password, setPassword] = useState('password')
   const [errors, setErrors] = useState({})
-  const { login, loading, error } = useAuth()
+  const { login, loading } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
 
   const validateForm = () => {
@@ -37,7 +38,10 @@ function Login() {
     
     const result = await login(email, password)
     if (result.success) {
+      toast.success('Login successful!')
       navigate('/')
+    } else {
+      toast.error(result.error || 'Login failed')
     }
   }
 
@@ -56,68 +60,28 @@ function Login() {
         </div>
 
         {/* Login Form */}
-        <div className="bg-slate-800 rounded-xl p-8 shadow-xl">
+        <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Error Alert */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
-                <p className="text-red-500 text-sm">{error}</p>
-              </div>
-            )}
+            <Input
+              label="Email Address"
+              type="email"
+              icon={Mail}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              error={errors.email}
+              placeholder="thabang@axulo.aero"
+            />
 
-            {/* Email Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full bg-slate-900 text-white pl-10 pr-4 py-3 rounded-lg border ${
-                    errors.email ? 'border-red-500' : 'border-slate-700'
-                  } focus:outline-none focus:border-blue-500 transition`}
-                  placeholder="john@axulo.aero"
-                />
-              </div>
-              {errors.email && (
-                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-              )}
-            </div>
+            <Input
+              label="Password"
+              type="password"
+              icon={Lock}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              error={errors.password}
+              placeholder="••••••••"
+            />
 
-            {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full bg-slate-900 text-white pl-10 pr-12 py-3 rounded-lg border ${
-                    errors.password ? 'border-red-500' : 'border-slate-700'
-                  } focus:outline-none focus:border-blue-500 transition`}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
-              )}
-            </div>
-
-            {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2">
                 <input
@@ -134,36 +98,30 @@ function Login() {
               </Link>
             </div>
 
-            {/* Submit Button */}
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="primary"
+              fullWidth
+              isLoading={loading}
             >
-              {loading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Signing in...</span>
-                </div>
-              ) : (
-                'Sign In'
-              )}
-            </button>
+              Sign In
+            </Button>
           </form>
 
-          {/* Sign Up Link */}
-          <p className="text-center text-gray-400 text-sm mt-6">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium transition">
-              Sign up
-            </Link>
-          </p>
-        </div>
+          <div className="text-center mt-6">
+            <p className="text-gray-400 text-sm">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium transition">
+                Sign up
+              </Link>
+            </p>
+          </div>
+        </Card>
 
         {/* Demo Credentials */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500">
-            Demo:<span className="text-blue-400">thabang@axulo.aero</span> / password
+            Demo: <span className="text-blue-400">thabang@axulo.aero</span> / password
           </p>
         </div>
       </div>

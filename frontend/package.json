@@ -16,6 +16,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.8",
+    "@react-email/components": "^1.0.8",
     "axios": "^1.13.6",
     "file-saver": "^2.0.5",
     "jwt-decode": "^4.0.0",
@@ -23,8 +24,10 @@
     "papaparse": "^5.5.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-email": "^5.2.9",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.13.1",
+    "react-to-print": "^3.3.0",
     "recharts": "^3.7.0",
     "xlsx": "^0.18.5"
   },

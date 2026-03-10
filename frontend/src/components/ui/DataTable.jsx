@@ -35,7 +35,7 @@ import Input from './Input'
 import Select from './Select'
 import Card from './Card'
 import { useToast } from './Toast'
-import ColumnViews from './ColumnViews' // Add this import
+import ColumnViews from './ColumnViews'
 
 // Sortable Table Header Component
 const SortableHeader = ({ column, onSort, sortConfig, children }) => {
@@ -99,16 +99,29 @@ const DataTable = ({
   emptyMessage = 'No data available',
   className = '',
   storageKey = 'datatable',
-  viewsStorageKey = 'table_views', // Add this
+  viewsStorageKey = 'table_views',
   defaultVisibleColumns = [],
   defaultColumnOrder = [],
+  // External pagination props
+  currentPage: externalCurrentPage,
+  totalPages: externalTotalPages,
+  onPageChange,
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(pageSize)
+  
+  // Use internal state for pagination if external props not provided
+  const [internalCurrentPage, setInternalCurrentPage] = useState(1)
+  const [internalItemsPerPage, setInternalItemsPerPage] = useState(pageSize)
+  
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const toast = useToast()
+
+  // Determine whether to use internal or external pagination
+  const useExternalPagination = externalCurrentPage !== undefined && externalTotalPages !== undefined && onPageChange !== undefined
+  
+  const currentPage = useExternalPagination ? externalCurrentPage : internalCurrentPage
+  const itemsPerPage = useExternalPagination ? pageSize : internalItemsPerPage
 
   // Setup sensors for drag and drop
   const sensors = useSensors(
@@ -220,16 +233,20 @@ const DataTable = ({
     })
   }, [filteredData, sortConfig])
 
-  // Paginate data
+  // Paginate data (only if using internal pagination)
   const paginatedData = useMemo(() => {
     if (!pagination) return sortedData
+    if (useExternalPagination) return sortedData // External pagination means data is already paginated
     
     const start = (currentPage - 1) * itemsPerPage
     const end = start + itemsPerPage
     return sortedData.slice(start, end)
-  }, [sortedData, currentPage, itemsPerPage, pagination])
+  }, [sortedData, currentPage, itemsPerPage, pagination, useExternalPagination])
 
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage)
+  const totalFilteredItems = sortedData.length
+  const totalPagesCalculated = useExternalPagination 
+    ? externalTotalPages 
+    : Math.ceil(totalFilteredItems / itemsPerPage)
 
   // View management functions
   const loadView = (view) => {
@@ -263,12 +280,22 @@ const DataTable = ({
   }
 
   const handlePageChange = (page) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)))
+    if (useExternalPagination) {
+      onPageChange(page)
+    } else {
+      setInternalCurrentPage(Math.max(1, Math.min(page, totalPagesCalculated)))
+    }
   }
 
   const handleItemsPerPageChange = (e) => {
-    setItemsPerPage(Number(e.target.value))
-    setCurrentPage(1)
+    const newSize = Number(e.target.value)
+    if (useExternalPagination) {
+      // For external pagination, we'd need to pass this up
+      console.warn('Items per page change not supported with external pagination')
+    } else {
+      setInternalItemsPerPage(newSize)
+      setInternalCurrentPage(1)
+    }
   }
 
   const toggleColumn = (accessor) => {
@@ -347,7 +374,7 @@ const DataTable = ({
               </div>
             )}
             
-            {/* Column Views - New */}
+            {/* Column Views */}
             <ColumnViews
               currentView={{
                 name: 'Current',
@@ -453,14 +480,14 @@ const DataTable = ({
                     </div>
                   </td>
                 </tr>
-              ) : paginatedData.length === 0 ? (
+              ) : (useExternalPagination ? data : paginatedData).length === 0 ? (
                 <tr>
                   <td colSpan={orderedVisibleColumns.length + (actions ? 1 : 0)} className="p-8 text-center text-gray-400">
                     {emptyMessage}
                   </td>
                 </tr>
               ) : (
-                paginatedData.map((row, index) => (
+                (useExternalPagination ? data : paginatedData).map((row, index) => (
                   <tr
                     key={index}
                     onClick={() => onRowClick && onRowClick(row)}
@@ -489,29 +516,63 @@ const DataTable = ({
       </DndContext>
 
       {/* Pagination */}
-      {pagination && sortedData.length > 0 && (
+      {pagination && (useExternalPagination ? data.length > 0 : sortedData.length > 0) && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-700">
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-400">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
-              {Math.min(currentPage * itemsPerPage, sortedData.length)} of{' '}
-              {sortedData.length} entries
+              {useExternalPagination ? (
+                <>Page {currentPage} of {totalPagesCalculated}</>
+              ) : (
+                <>Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
+                {Math.min(currentPage * itemsPerPage, totalFilteredItems)} of{' '}
+                {totalFilteredItems} entries</>
+              )}
             </span>
             
-            <Select
-              value={itemsPerPage}
-              onChange={handleItemsPerPageChange}
-              options={pageSizeOptions.map(size => ({ value: size, label: `${size} per page` }))}
-              className="w-32"
-            />
+            {!useExternalPagination && (
+              <Select
+                value={itemsPerPage}
+                onChange={handleItemsPerPageChange}
+                options={pageSizeOptions.map(size => ({ value: size, label: `${size} per page` }))}
+                className="w-32"
+              />
+            )}
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => handlePageChange(1)} disabled={currentPage === 1} icon={ChevronsLeft} />
-            <Button variant="ghost" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} icon={ChevronLeft} />
-            <span className="text-sm text-white mx-2">Page {currentPage} of {totalPages}</span>
-            <Button variant="ghost" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} icon={ChevronRight} />
-            <Button variant="ghost" size="sm" onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} icon={ChevronsRight} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handlePageChange(1)}
+              disabled={currentPage === 1}
+              icon={ChevronsLeft}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              icon={ChevronLeft}
+            />
+            
+            <span className="text-sm text-white mx-2">
+              Page {currentPage} of {totalPagesCalculated}
+            </span>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPagesCalculated}
+              icon={ChevronRight}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handlePageChange(totalPagesCalculated)}
+              disabled={currentPage === totalPagesCalculated}
+              icon={ChevronsRight}
+            />
           </div>
         </div>
       )}
