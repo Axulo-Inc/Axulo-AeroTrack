@@ -70,18 +70,17 @@ const inventorySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Update status based on stock level
-inventorySchema.pre('save', function(next) {
+// Update status based on stock level - FIXED VERSION
+inventorySchema.pre('save', async function() {
   if (this.stock === 0) {
     this.status = 'Out of Stock';
-  } else if (this.stock <= this.minRequired / 2) {
+  } else if (this.stock <= (this.minRequired / 2)) {
     this.status = 'Critical';
   } else if (this.stock <= this.minRequired) {
     this.status = 'Low Stock';
   } else {
     this.status = 'In Stock';
   }
-  next();
 });
 
 module.exports = mongoose.model('Inventory', inventorySchema);
