@@ -1,10 +1,11 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   Card, 
   Tabs, 
   Select, 
   Button,
-  Badge
+  Badge,
+  LoadingSpinner
 } from "../components/ui"
 import { 
   BarChart3, 
@@ -14,14 +15,18 @@ import {
   Download,
   AlertTriangle,
   CheckCircle,
-  Clock
+  Clock,
+  PieChart,
+  Activity,
+  DollarSign,
+  Plane
 } from 'lucide-react'
 import {
   LineChart,
   Line,
   BarChart,
   Bar,
-  PieChart,
+  PieChart as RePieChart,
   Pie,
   Cell,
   AreaChart,
@@ -33,100 +38,184 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts'
+import analyticsService from "../services/analytics.service"
+import { useToast } from "../components/ui"
 
 function Analytics() {
+  const toast = useToast()
+  const [loading, setLoading] = useState(true)
   const [dateRange, setDateRange] = useState('30d')
-  const [chartType, setChartType] = useState('overview')
+  const [analytics, setAnalytics] = useState({
+    aircraft: {
+      total: 0,
+      active: 0,
+      maintenance: 0,
+      grounded: 0,
+      totalHours: 0,
+      byType: []
+    },
+    defects: {
+      total: 0,
+      open: 0,
+      inProgress: 0,
+      closed: 0,
+      bySeverity: [],
+      byCategory: [],
+      overTime: []
+    },
+    maintenance: {
+      total: 0,
+      scheduled: 0,
+      inProgress: 0,
+      completed: 0,
+      byPriority: [],
+      byType: []
+    },
+    inventory: {
+      total: 0,
+      totalValue: 0,
+      lowStock: 0,
+      critical: 0,
+      outOfStock: 0,
+      byCategory: []
+    }
+  })
+  const [defectTrends, setDefectTrends] = useState([])
+  const [costAnalysis, setCostAnalysis] = useState({ byType: [], byMonth: [] })
+  const [utilization, setUtilization] = useState({
+    utilizationRate: 0,
+    openDefects: 0,
+    scheduledMaintenance: 0
+  })
 
-  // Mock data for charts
-  const defectTrendData = [
-    { month: 'Jan', mechanical: 12, electrical: 8, hydraulic: 5, avionics: 3 },
-    { month: 'Feb', mechanical: 15, electrical: 10, hydraulic: 7, avionics: 4 },
-    { month: 'Mar', mechanical: 11, electrical: 9, hydraulic: 6, avionics: 5 },
-    { month: 'Apr', mechanical: 8, electrical: 12, hydraulic: 4, avionics: 7 },
-    { month: 'May', mechanical: 10, electrical: 7, hydraulic: 8, avionics: 6 },
-    { month: 'Jun', mechanical: 13, electrical: 11, hydraulic: 9, avionics: 8 },
-  ]
+  // Fetch all analytics data
+  useEffect(() => {
+    fetchAllAnalytics()
+  }, [dateRange])
 
-  const mtbfData = [
-    { aircraft: 'ZS-ABC', mtbf: 245, type: 'A320' },
-    { aircraft: 'ZS-DEF', mtbf: 189, type: 'B737' },
-    { aircraft: 'ZS-GHI', mtbf: 312, type: 'A320' },
-    { aircraft: 'ZS-JKL', mtbf: 278, type: 'B777' },
-    { aircraft: 'ZS-MNO', mtbf: 156, type: 'A330' },
-    { aircraft: 'ZS-PQR', mtbf: 223, type: 'B787' },
-    { aircraft: 'ZS-STU', mtbf: 198, type: 'A380' },
-    { aircraft: 'ZS-VWX', mtbf: 267, type: 'B747' },
-  ]
+  const fetchAllAnalytics = async () => {
+    try {
+      setLoading(true)
+      
+      // Get dashboard analytics
+      const dashboardData = await analyticsService.getDashboardAnalytics()
+      if (dashboardData.success) {
+        setAnalytics(dashboardData.data)
+      }
+      
+      // Get defect trends
+      const trends = await analyticsService.getDefectTrends(dateRange)
+      if (trends.success) {
+        setDefectTrends(trends.data)
+      }
+      
+      // Get cost analysis
+      const costs = await analyticsService.getMaintenanceCostAnalysis()
+      if (costs.success) {
+        setCostAnalysis(costs.data)
+      }
+      
+      // Get fleet utilization
+      const util = await analyticsService.getFleetUtilization()
+      if (util.success) {
+        setUtilization(util.data)
+      }
+      
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error)
+      toast.error('Failed to load analytics data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const utilizationData = [
-    { month: 'Jan', flightHours: 2450, groundTime: 320, maintenance: 180 },
-    { month: 'Feb', flightHours: 2320, groundTime: 290, maintenance: 210 },
-    { month: 'Mar', flightHours: 2680, groundTime: 310, maintenance: 150 },
-    { month: 'Apr', flightHours: 2540, groundTime: 280, maintenance: 190 },
-    { month: 'May', flightHours: 2780, groundTime: 300, maintenance: 170 },
-    { month: 'Jun', flightHours: 2910, groundTime: 330, maintenance: 200 },
-  ]
+  const formatDefectTrendData = () => {
+    if (!defectTrends.byDate) return []
+    
+    return Object.entries(defectTrends.byDate)
+      .map(([date, data]) => ({
+        date,
+        total: data.total,
+        Low: data.bySeverity.Low || 0,
+        Medium: data.bySeverity.Medium || 0,
+        High: data.bySeverity.High || 0,
+        Critical: data.bySeverity.Critical || 0
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-30) // Last 30 days
+  }
 
-  const costData = [
-    { category: 'Engine', cost: 45000 },
-    { category: 'Hydraulic', cost: 28000 },
-    { category: 'Avionics', cost: 35000 },
-    { category: 'Landing Gear', cost: 32000 },
-    { category: 'Electrical', cost: 18000 },
-    { category: 'Structure', cost: 22000 },
-  ]
+  const formatMaintenanceCostData = () => {
+    if (!costAnalysis.byMonth) return []
+    
+    return Object.entries(costAnalysis.byMonth)
+      .map(([month, data]) => ({
+        month,
+        cost: data.totalCost,
+        count: data.count
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .slice(-12) // Last 12 months
+  }
 
-  const defectByTypeData = [
-    { name: 'Mechanical', value: 35, color: '#EF4444' },
-    { name: 'Electrical', value: 28, color: '#3B82F6' },
-    { name: 'Hydraulic', value: 20, color: '#10B981' },
-    { name: 'Avionics', value: 17, color: '#F59E0B' },
-  ]
+  const defectByCategoryData = analytics.defects.byCategory?.map(item => ({
+    name: item._id || 'Other',
+    value: item.count,
+    color: getCategoryColor(item._id)
+  })) || []
 
-  const COLORS = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899']
+  const defectBySeverityData = analytics.defects.bySeverity?.map(item => ({
+    name: item._id,
+    value: item.count,
+    color: getSeverityColor(item._id)
+  })) || []
+
+  const maintenanceByTypeData = costAnalysis.byType ? 
+    Object.entries(costAnalysis.byType).map(([type, data]) => ({
+      name: type,
+      count: data.count,
+      cost: data.totalCost
+    })) : []
+
+  function getSeverityColor(severity) {
+    switch(severity) {
+      case 'Critical': return '#EF4444'
+      case 'High': return '#F59E0B'
+      case 'Medium': return '#3B82F6'
+      case 'Low': return '#10B981'
+      default: return '#6B7280'
+    }
+  }
+
+  function getCategoryColor(category) {
+    const colors = {
+      'Mechanical': '#EF4444',
+      'Electrical': '#3B82F6',
+      'Hydraulic': '#10B981',
+      'Avionics': '#8B5CF6',
+      'Structural': '#F59E0B',
+      'Other': '#6B7280'
+    }
+    return colors[category] || '#6B7280'
+  }
+
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
 
   const dateRangeOptions = [
     { value: '7d', label: 'Last 7 Days' },
     { value: '30d', label: 'Last 30 Days' },
     { value: '90d', label: 'Last 90 Days' },
     { value: '1y', label: 'Last Year' },
-    { value: 'ytd', label: 'Year to Date' },
+    { value: 'all', label: 'All Time' }
   ]
 
-  const tabs = [
-    {
-      id: 'overview',
-      label: 'Overview',
-      icon: BarChart3,
-      content: (
-        <div className="space-y-6">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <Card.Body>
-                <p className="text-gray-400 text-sm">Fleet Utilization</p>
-                <p className="text-2xl font-bold text-white">87.3%</p>
-                <p className="text-xs text-green-400 mt-1">↑ 2.1% vs last month</p>
-              </Card.Body>
-            </Card>
-            <Card>
-              <Card.Body>
-                <p className="text-gray-400 text-sm">MTBF (Avg)</p>
-                <p className="text2xl font-bold text-white">233 hrs</p>
-                <p className="text-xs text-red-400 mt-1">↓ 5.2% vs last month</p>
-              </Card.Body>
-            </Card>
-            <Card>
-              <Card.Body>
-                <p className="text-gray-400 text-sm">Open Defects</p>
-              </Card.Body>
-            </Card>
-          </div>
-        </div>
-      )
-    }
-  ]
+  if (loading) {
+    return (
+      <div className="p-6 text-white bg-slate-800 min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 text-white bg-slate-800 min-h-screen">
@@ -140,39 +229,31 @@ function Analytics() {
             options={dateRangeOptions}
             className="w-40"
           />
-          <Button variant="primary" icon={Download}>
+          <Button variant="primary" icon={Download} onClick={() => {
+            toast.info('Export feature coming soon')
+          }}>
             Export Report
+          </Button>
+          <Button variant="ghost" icon={Activity} onClick={fetchAllAnalytics}>
+            Refresh
           </Button>
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <Card.Body>
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-gray-400 text-sm">Fleet Utilization</p>
-                <p className="text-2xl font-bold text-white">87.3%</p>
-                <p className="text-xs text-green-400 mt-1">↑ 2.1% vs last month</p>
+                <p className="text-2xl font-bold text-white">{utilization.utilizationRate}%</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {analytics.aircraft.active} of {analytics.aircraft.total} active
+                </p>
               </div>
               <div className="p-2 bg-blue-500/20 rounded-lg">
-                <TrendingUp className="text-blue-400" size={20} />
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
-
-        <Card>
-          <Card.Body>
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-400 text-sm">MTBF (Avg)</p>
-                <p className="text-2xl font-bold text-white">233 hrs</p>
-                <p className="text-xs text-red-400 mt-1">↓ 5.2% vs last month</p>
-              </div>
-              <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Clock className="text-purple-400" size={20} />
+                <Plane className="text-blue-400" size={20} />
               </div>
             </div>
           </Card.Body>
@@ -183,8 +264,10 @@ function Analytics() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-gray-400 text-sm">Open Defects</p>
-                <p className="text-2xl font-bold text-yellow-400">7</p>
-                <p className="text-xs text-yellow-400 mt-1">3 high priority</p>
+                <p className="text-2xl font-bold text-yellow-400">{analytics.defects.open || 0}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {analytics.defects.inProgress || 0} in progress
+                </p>
               </div>
               <div className="p-2 bg-yellow-500/20 rounded-lg">
                 <AlertTriangle className="text-yellow-400" size={20} />
@@ -197,12 +280,33 @@ function Analytics() {
           <Card.Body>
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-gray-400 text-sm">Maintenance Cost</p>
-                <p className="text-2xl font-bold text-white">$180K</p>
-                <p className="text-xs text-green-400 mt-1">↓ 3.2% vs last month</p>
+                <p className="text-gray-400 text-sm">Maintenance Tasks</p>
+                <p className="text-2xl font-bold text-white">{analytics.maintenance.total || 0}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {analytics.maintenance.scheduled || 0} scheduled
+                </p>
+              </div>
+              <div className="p-2 bg-purple-500/20 rounded-lg">
+                <Clock className="text-purple-400" size={20} />
+              </div>
+            </div>
+          </Card.Body>
+        </Card>
+
+        <Card>
+          <Card.Body>
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-400 text-sm">Inventory Value</p>
+                <p className="text-2xl font-bold text-green-400">
+                  ${(analytics.inventory.totalValue || 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {analytics.inventory.lowStock || 0} low stock items
+                </p>
               </div>
               <div className="p-2 bg-green-500/20 rounded-lg">
-                <TrendingDown className="text-green-400" size={20} />
+                <DollarSign className="text-green-400" size={20} />
               </div>
             </div>
           </Card.Body>
@@ -214,24 +318,24 @@ function Analytics() {
         {/* Defect Trends */}
         <Card>
           <Card.Header>
-            <h3 className="text-lg font-semibold">Defect Trends by Category</h3>
+            <h3 className="text-lg font-semibold">Defect Trends</h3>
           </Card.Header>
           <Card.Body>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={defectTrendData}>
+                <LineChart data={formatDefectTrendData()}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="month" stroke="#94a3b8" />
+                  <XAxis dataKey="date" stroke="#94a3b8" />
                   <YAxis stroke="#94a3b8" />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#1E293B', border: 'none', borderRadius: '8px' }}
                     labelStyle={{ color: '#F3F4F6' }}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="mechanical" stroke="#EF4444" strokeWidth={2} />
-                  <Line type="monotone" dataKey="electrical" stroke="#3B82F6" strokeWidth={2} />
-                  <Line type="monotone" dataKey="hydraulic" stroke="#10B981" strokeWidth={2} />
-                  <Line type="monotone" dataKey="avionics" stroke="#F59E0B" strokeWidth={2} />
+                  <Line type="monotone" dataKey="Critical" stroke="#EF4444" strokeWidth={2} />
+                  <Line type="monotone" dataKey="High" stroke="#F59E0B" strokeWidth={2} />
+                  <Line type="monotone" dataKey="Medium" stroke="#3B82F6" strokeWidth={2} />
+                  <Line type="monotone" dataKey="Low" stroke="#10B981" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -241,14 +345,14 @@ function Analytics() {
         {/* Defect Distribution */}
         <Card>
           <Card.Header>
-            <h3 className="text-lg font-semibold">Defects by Type</h3>
+            <h3 className="text-lg font-semibold">Defects by Category</h3>
           </Card.Header>
           <Card.Body>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <RePieChart>
                   <Pie
-                    data={defectByTypeData}
+                    data={defectByCategoryData}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -257,173 +361,207 @@ function Analytics() {
                     dataKey="value"
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   >
-                    {defectByTypeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    {defectByCategoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#1E293B', border: 'none', borderRadius: '8px' }}
                   />
-                </PieChart>
+                </RePieChart>
               </ResponsiveContainer>
             </div>
           </Card.Body>
         </Card>
 
-        {/* MTBF Chart */}
+        {/* Maintenance Costs */}
         <Card>
           <Card.Header>
-            <h3 className="text-lg font-semibold">MTBF by Aircraft (hours)</h3>
+            <h3 className="text-lg font-semibold">Maintenance Costs by Month</h3>
           </Card.Header>
           <Card.Body>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mtbfData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="aircraft" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1E293B', border: 'none', borderRadius: '8px' }}
-                  />
-                  <Bar dataKey="mtbf" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card.Body>
-        </Card>
-
-        {/* Utilization Chart */}
-        <Card>
-          <Card.Header>
-            <h3 className="text-lg font-semibold">Aircraft Utilization</h3>
-          </Card.Header>
-          <Card.Body>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={utilizationData}>
+                <BarChart data={formatMaintenanceCostData()}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis dataKey="month" stroke="#94a3b8" />
                   <YAxis stroke="#94a3b8" />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#1E293B', border: 'none', borderRadius: '8px' }}
-                  />
-                  <Area type="monotone" dataKey="flightHours" stackId="1" stroke="#3B82F6" fill="#3B82F6" />
-                  <Area type="monotone" dataKey="groundTime" stackId="1" stroke="#10B981" fill="#10B981" />
-                  <Area type="monotone" dataKey="maintenance" stackId="1" stroke="#F59E0B" fill="#F59E0B" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </Card.Body>
-        </Card>
-
-        {/* Cost Analysis */}
-        <Card className="lg:col-span-2">
-          <Card.Header>
-            <h3 className="text-lg font-semibold">Maintenance Cost by Category</h3>
-          </Card.Header>
-          <Card.Body>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={costData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="category" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1E293B', border: 'none', borderRadius: '8px' }}
                     formatter={(value) => [`$${value.toLocaleString()}`, 'Cost']}
                   />
-                  <Bar dataKey="cost" fill="#8B5CF6" radius={[4, 4, 0, 0]}>
-                    {costData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
+                  <Bar dataKey="cost" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </Card.Body>
         </Card>
-      </div>
 
-      {/* Insights Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Defect Severity */}
         <Card>
           <Card.Header>
-            <h3 className="text-lg font-semibold">Top Recommendations</h3>
+            <h3 className="text-lg font-semibold">Defects by Severity</h3>
           </Card.Header>
           <Card.Body>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 p-3 bg-slate-900 rounded-lg">
-                <AlertTriangle className="text-yellow-500 shrink-0 mt-1" size={18} />
-                <div>
-                  <p className="text-white font-medium">ZS-DEF showing increased vibration</p>
-                  <p className="text-xs text-gray-400 mt-1">Schedule inspection within 7 days</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 bg-slate-900 rounded-lg">
-                <TrendingUp className="text-blue-500 shrink-0 mt-1" size={18} />
-                <div>
-                  <p className="text-white font-medium">Hydraulic pump failure rate increasing</p>
-                  <p className="text-xs text-gray-400 mt-1">Consider proactive replacement program</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 bg-slate-900 rounded-lg">
-                <CheckCircle className="text-green-500 shrink-0 mt-1" size={18} />
-                <div>
-                  <p className="text-white font-medium">ZS-ABC exceeded 98% uptime</p>
-                  <p className="text-xs text-gray-400 mt-1">Best performing aircraft this month</p>
-                </div>
-              </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <RePieChart>
+                  <Pie
+                    data={defectBySeverityData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {defectBySeverityData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1E293B', border: 'none', borderRadius: '8px' }}
+                  />
+                </RePieChart>
+              </ResponsiveContainer>
             </div>
           </Card.Body>
         </Card>
 
-        <Card>
+        {/* Fleet Health Summary */}
+        <Card className="lg:col-span-2">
           <Card.Header>
             <h3 className="text-lg font-semibold">Fleet Health Summary</h3>
           </Card.Header>
           <Card.Body>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Healthy</span>
-                <span className="text-green-400 font-bold">6 aircraft</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <h4 className="text-sm font-medium text-gray-400 mb-3">Aircraft Status</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">Active</span>
+                    <span className="text-green-400 font-bold">{analytics.aircraft.active || 0}</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-green-500 rounded-full" 
+                      style={{ width: analytics.aircraft.total ? `${(analytics.aircraft.active / analytics.aircraft.total) * 100}%` : '0%' }}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-white">In Maintenance</span>
+                    <span className="text-yellow-400 font-bold">{analytics.aircraft.maintenance || 0}</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-yellow-500 rounded-full" 
+                      style={{ width: analytics.aircraft.total ? `${(analytics.aircraft.maintenance / analytics.aircraft.total) * 100}%` : '0%' }}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-white">Grounded</span>
+                    <span className="text-red-400 font-bold">{analytics.aircraft.grounded || 0}</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-red-500 rounded-full" 
+                      style={{ width: analytics.aircraft.total ? `${(analytics.aircraft.grounded / analytics.aircraft.total) * 100}%` : '0%' }}
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-                <div className="h-full bg-green-500 rounded-full" style={{ width: '75%' }} />
-              </div>
-              
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-gray-400">Warning</span>
-                <span className="text-yellow-400 font-bold">1 aircraft</span>
-              </div>
-              <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-                <div className="h-full bg-yellow-500 rounded-full" style={{ width: '12.5%' }} />
-              </div>
-              
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-gray-400">Critical</span>
-                <span className="text-red-400 font-bold">1 aircraft</span>
-              </div>
-              <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-                <div className="h-full bg-red-500 rounded-full" style={{ width: '12.5%' }} />
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
 
-        <Card>
-          <Card.Header>
-            <h3 className="text-lg font-semibold">Quick Actions</h3>
-          </Card.Header>
-          <Card.Body>
-            <div className="space-y-2">
-              <Button variant="primary" fullWidth>Generate Full Report</Button>
-              <Button variant="secondary" fullWidth>Schedule Maintenance Review</Button>
-              <Button variant="ghost" fullWidth>Export Data for Analysis</Button>
-              <Button variant="ghost" fullWidth>View Detailed MTBF Report</Button>
+              <div>
+                <h4 className="text-sm font-medium text-gray-400 mb-3">Defect Overview</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">Open</span>
+                    <span className="text-yellow-400 font-bold">{analytics.defects.open || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">In Progress</span>
+                    <span className="text-blue-400 font-bold">{analytics.defects.inProgress || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">Closed (30d)</span>
+                    <span className="text-green-400 font-bold">{defectTrends.total || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">High/Critical</span>
+                    <span className="text-red-400 font-bold">{utilization.highSeverityDefects || 0}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-gray-400 mb-3">Maintenance Overview</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">Scheduled</span>
+                    <span className="text-blue-400 font-bold">{analytics.maintenance.scheduled || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">In Progress</span>
+                    <span className="text-yellow-400 font-bold">{analytics.maintenance.inProgress || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">Completed</span>
+                    <span className="text-green-400 font-bold">{analytics.maintenance.completed || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">Avg. Cost</span>
+                    <span className="text-white font-bold">
+                      ${(costAnalysis.averageCost || 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </Card.Body>
         </Card>
       </div>
+
+      {/* Inventory Summary */}
+      <Card>
+        <Card.Header>
+          <h3 className="text-lg font-semibold">Inventory Status</h3>
+        </Card.Header>
+        <Card.Body>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="p-4 bg-slate-900 rounded-lg">
+              <p className="text-gray-400 text-sm">Total Parts</p>
+              <p className="text-2xl font-bold text-white">{analytics.inventory.total || 0}</p>
+            </div>
+            <div className="p-4 bg-slate-900 rounded-lg">
+              <p className="text-gray-400 text-sm">Low Stock</p>
+              <p className="text-2xl font-bold text-yellow-400">{analytics.inventory.lowStock || 0}</p>
+            </div>
+            <div className="p-4 bg-slate-900 rounded-lg">
+              <p className="text-gray-400 text-sm">Critical</p>
+              <p className="text-2xl font-bold text-red-400">{analytics.inventory.critical || 0}</p>
+            </div>
+            <div className="p-4 bg-slate-900 rounded-lg">
+              <p className="text-gray-400 text-sm">Out of Stock</p>
+              <p className="text-2xl font-bold text-red-400">{analytics.inventory.outOfStock || 0}</p>
+            </div>
+          </div>
+
+          {analytics.inventory.byCategory && analytics.inventory.byCategory.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-gray-400 mb-2">By Category</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {analytics.inventory.byCategory.map((cat, idx) => (
+                  <div key={idx} className="flex justify-between items-center p-2 bg-slate-900 rounded">
+                    <span className="text-white text-sm">{cat._id}</span>
+                    <span className="text-blue-400 font-bold">{cat.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card.Body>
+      </Card>
     </div>
   )
 }
