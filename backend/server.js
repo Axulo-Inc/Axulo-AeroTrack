@@ -12,6 +12,7 @@ const aircraftRoutes = require('./routes/aircraft.routes');
 const defectRoutes = require('./routes/defect.routes');
 const maintenanceRoutes = require('./routes/maintenance.routes');
 const inventoryRoutes = require('./routes/inventory.routes');
+const predictionRoutes = require('./routes/prediction.routes');
 
 const app = express();
 
@@ -20,7 +21,7 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? 'https://yourdomain.com' 
-    : 'http://localhost:5173',
+    : ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'],
   credentials: true
 }));
 app.use(express.json());
@@ -41,6 +42,7 @@ app.use('/api/aircraft', aircraftRoutes);
 app.use('/api/defects', defectRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/predictions', predictionRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
